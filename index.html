@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NEWS DESK</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #101318;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        header {
+            height: 75px;
+            background: #151a21;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            gap: 12px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .live {
+            color: #4c9aff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .header-buttons {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .refresh {
+            background: #2674e8;
+            color: white;
+            padding: 11px 17px;
+        }
+
+        .refresh:hover {
+            background: #195bbd;
+        }
+
+        .stop {
+            background: #b83232;
+            color: white;
+            padding: 11px 17px;
+        }
+
+        .stop:hover {
+            background: #8f2525;
+        }
+
+        .search-area {
+            display: flex;
+            gap: 8px;
+            padding: 18px 20px;
+        }
+
+        #search {
+            flex: 1;
+            background: #1b2028;
+            color: white;
+            border: 0;
+            outline: none;
+            border-radius: 5px;
+            padding: 13px;
+            font-size: 15px;
+        }
+
+        .clear {
+            background: #303741;
+            color: white;
+            padding: 0 18px;
+        }
+
+        .categories {
+            display: flex;
+            gap: 6px;
+            padding: 0 20px 10px;
+            overflow-x: auto;
+        }
+
+        .category {
+            white-space: nowrap;
+            background: #20262e;
+            color: #d8dde5;
+            padding: 9px 12px;
+        }
+
+        .category:hover,
+        .category.active {
+            background: #2674e8;
+            color: white;
+        }
+
+        .status {
+            color: #737c88;
+            padding: 8px 25px;
+            font-size: 13px;
+        }
+
+        main {
+            padding: 5px 12px 30px;
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .article {
+            background: #181d24;
+            border: 1px solid #2a3038;
+            border-radius: 6px;
+            padding: 18px;
+            margin: 12px 0;
+        }
+
+        .article h2 {
+            margin: 0 0 10px;
+            font-size: 20px;
+            line-height: 1.3;
+        }
+
+        .article p {
+            color: #c5cbd3;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+
+        .date {
+            color: #777f89;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .article-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .read {
+            background: #2674e8;
+            color: white;
+            padding: 10px 14px;
+        }
+
+        .voice {
+            background: #168a55;
+            color: white;
+            padding: 10px 14px;
+        }
+
+        .voice:hover {
+            background: #116b42;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .error {
+            background: #401d1d;
+            border: 1px solid #7b3030;
+            padding: 20px;
+            border-radius: 6px;
+            color: #ffb0b0;
+        }
+
+        @media (max-width: 700px) {
+            header {
+                height: auto;
+                padding: 15px;
+                flex-wrap: wrap;
+            }
+
+            .logo {
+                font-size: 23px;
+            }
+
+            .header-buttons {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .header-buttons button {
+                flex: 1;
+            }
+
+            .article h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">NEWS DESK</div>
+    <div class="live">● LIVE NEWS + VOICE</div>
+
+    <div class="header-buttons">
+        <button class="stop" onclick="stopVoice()">
+            ■ STOP VOICE
+        </button>
+
+        <button class="refresh" onclick="loadNews()">
+            ↻ REFRESH
+        </button>
+    </div>
+</header>
+
+<div class="search-area">
+    <input
+        id="search"
+        type="text"
+        placeholder="Search news..."
+        oninput="filterNews()"
+    >
+
+    <button class="clear" onclick="clearSearch()">
+        CLEAR
+    </button>
+</div>
+
+<div class="categories" id="categories"></div>
+
+<div class="status" id="status">
+    Starting...
+</div>
+
+<main id="news">
+    <div class="loading">
+        Loading news...
+    </div>
+</main>
+
+<script>
+    const feeds = {
+        "Top Stories":
+            "https://feeds.bbci.co.uk/news/rss.xml",
+
+        "World":
+            "https://feeds.bbci.co.uk/news/world/rss.xml",
+
+        "Africa":
+            "https://feeds.bbci.co.uk/news/world/africa/rss.xml",
+
+        "Technology":
+            "https://feeds.bbci.co.uk/news/technology/rss.xml",
+
+        "Business":
+            "https://feeds.bbci.co.uk/news/business/rss.xml",
+
+        "Science":
+            "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+
+        "Health":
+            "https://feeds.bbci.co.uk/news/health/rss.xml",
+
+        "Entertainment":
+            "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+
+        "Sports":
+            "https://feeds.bbci.co.uk/sport/rss.xml"
+    };
+
+    let articles = [];
+    let currentCategory = "Top Stories";
+
+
+    function createCategories() {
+        const container =
+            document.getElementById("categories");
+
+        container.innerHTML = "";
+
+        Object.keys(feeds).forEach(category => {
+            const button =
+                document.createElement("button");
+
+            button.className = "category";
+
+            if (category === currentCategory) {
+                button.classList.add("active");
+            }
+
+            button.textContent = category;
+
+            button.onclick = () => {
+                currentCategory = category;
+                loadNews();
+            };
+
+            container.appendChild(button);
+        });
+    }
+
+
+    async function loadNews() {
+        stopVoice();
+
+        const news =
+            document.getElementById("news");
+
+        const status =
+            document.getElementById("status");
+
+        news.innerHTML =
+            `<div class="loading">
+                Loading ${currentCategory} news...
+            </div>`;
+
+        status.textContent =
+            "Connecting to news feed...";
+
+        createCategories();
+
+        try {
+            /*
+                RSS feeds can be blocked by browser CORS.
+                rss2json converts the RSS feed into JSON.
+            */
+
+            const rssUrl =
+                encodeURIComponent(
+                    feeds[currentCategory]
+                );
+
+            const api =
+                `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
+
+            const response =
+                await fetch(api);
+
+            if (!response.ok) {
+                throw new Error(
+                    "Network error"
+                );
+            }
+
+            const data =
+                await response.json();
+
+            if (!data.items) {
+                throw new Error(
+                    "No news was returned"
+                );
+            }
+
+            articles = data.items;
+
+            status.textContent =
+                `${articles.length} stories • Updated ${new Date().toLocaleTimeString()}`;
+
+            displayNews();
+
+        } catch (error) {
+
+            news.innerHTML = `
+                <div class="error">
+                    <h2>Unable to load news</h2>
+
+                    <p>
+                        Check your internet connection
+                        and try REFRESH.
+                    </p>
+
+                    <p>
+                        ${error.message}
+                    </p>
+                </div>
+            `;
+
+            status.textContent =
+                "News loading failed.";
+        }
+    }
+
+
+    function displayNews() {
+        const news =
+            document.getElementById("news");
+
+        const search =
+            document
+                .getElementById("search")
+                .value
+                .toLowerCase()
+                .trim();
+
+        news.innerHTML = "";
+
+        const filtered =
+            articles.filter(article => {
+
+                const title =
+                    article.title || "";
+
+                const description =
+                    article.description || "";
+
+                return (
+                    title.toLowerCase().includes(search) ||
+                    description.toLowerCase().includes(search)
+                );
+            });
+
+
+        if (filtered.length === 0) {
+
+            news.innerHTML = `
+                <div class="loading">
+                    No stories found.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        filtered.forEach(article => {
+
+            const card =
+                document.createElement("article");
+
+            card.className = "article";
+
+            const title =
+                escapeHTML(
+                    article.title || "Untitled"
+                );
+
+            const description =
+                stripHTML(
+                    article.description || ""
+                );
+
+            const cleanDescription =
+                escapeHTML(
+                    description
+                );
+
+            const date =
+                escapeHTML(
+                    article.pubDate || ""
+                );
+
+            card.innerHTML = `
+                <h2>${title}</h2>
+
+                <p>
+                    ${cleanDescription}
+                </p>
+
+                <div class="date">
+                    ${date}
+                </div>
+
+                <div class="article-buttons">
+
+                    <button
+                        class="voice"
+                        onclick="readArticle(this)"
+                    >
+                        🔊 READ ALOUD
+                    </button>
+
+                    <button
+                        class="read"
+                        onclick="openArticle(this)"
+                    >
+                        READ ARTICLE
+                    </button>
+
+                </div>
+            `;
+
+            card.dataset.title =
+                article.title || "";
+
+            card.dataset.description =
+                description;
+
+            card.dataset.link =
+                article.link || "";
+
+            news.appendChild(card);
+        });
+    }
+
+
+    function readArticle(button) {
+
+        stopVoice();
+
+        const article =
+            button.closest(".article");
+
+        const title =
+            article.dataset.title;
+
+        const description =
+            article.dataset.description;
+
+        const text =
+            `${title}. ${description}`;
+
+        const speech =
+            new SpeechSynthesisUtterance(text);
+
+        speech.lang = "en-US";
+        speech.rate = 0.95;
+        speech.pitch = 1;
+        speech.volume = 1;
+
+        const voices =
+            speechSynthesis.getVoices();
+
+        const englishVoice =
+            voices.find(
+                voice =>
+                    voice.lang.startsWith("en")
+            );
+
+        if (englishVoice) {
+            speech.voice =
+                englishVoice;
+        }
+
+        speechSynthesis.speak(speech);
+    }
+
+
+    function stopVoice() {
+        if ("speechSynthesis" in window) {
+            speechSynthesis.cancel();
+        }
+    }
+
+
+    function openArticle(button) {
+
+        stopVoice();
+
+        const article =
+            button.closest(".article");
+
+        const url =
+            article.dataset.link;
+
+        if (url) {
+            window.open(
+                url,
+                "_blank"
+            );
+        }
+    }
+
+
+    function filterNews() {
+        displayNews();
+    }
+
+
+    function clearSearch() {
+        document.getElementById("search").value = "";
+        displayNews();
+    }
+
+
+    function stripHTML(text) {
+        const temp =
+            document.createElement("div");
+
+        temp.innerHTML = text;
+
+        return (
+            temp.textContent ||
+            temp.innerText ||
+            ""
+        ).trim();
+    }
+
+
+    function escapeHTML(text) {
+        return text
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+
+    if ("speechSynthesis" in window) {
+        speechSynthesis.onvoiceschanged =
+            () => {};
+    }
+
+
+    createCategories();
+    loadNews();
+</script>
+
+</body>
+</html>
